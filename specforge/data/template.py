@@ -1,0 +1,403 @@
+# Derived from SpecForge (https://github.com/sgl-project/SpecForge)
+# MIT License
+# Modified for DLoop
+
+# Adapted from: https://github.com/sgl-project/sglang/blob/main/python/sglang/lang/chat_template.py#L13
+from typing import List, Optional
+
+from pydantic import BaseModel
+
+
+class ChatTemplate(BaseModel):
+    """
+    This is a dataclass for the chat template.
+
+    Args:
+        assistant_header(str): The header for the assistant.
+        user_header(str): The header for the user.
+        system_prompt(str): The system prompt.
+        end_of_turn_token(str): The end token of a turn of conversation.
+        ignore_token(List[str]): The list of tokens to ignore when parsing the model output, e.g., for thinking token.
+    """
+
+    assistant_header: Optional[str] = None
+    user_header: Optional[str] = None
+    system_prompt: Optional[str] = None
+    end_of_turn_token: Optional[str] = None
+    parser_type: str = "general"
+    assistant_pattern_type: str = "general"
+    enable_thinking: bool = False
+    ignore_token: Optional[List[str]] = None
+
+
+class TemplateRegistry:
+    """
+    This is a registry for the chat template. Sgl-spec will register some common chat templates here.
+    If you have a custom chat template, you can register it via the example below.
+
+    Example:
+    ```python
+        from specforge.data.template import TEMPLATE_REGISTRY, ChatTemplate
+        TEMPLATE_REGISTRY.register(
+            name="custom",
+            template=ChatTemplate(
+                assistant_header="<|start_header_id|>assistant<|end_header_id|>\n\n",
+                user_header="<|start_header_id|>user<|end_header_id|>",
+                system_prompt="You are a helpful assistant.",
+                end_of_turn_token="<|eot_id|>"
+            )
+        )
+    ```
+    """
+
+    def __init__(self):
+        self.templates = {}
+
+    def register(self, name: str, template: ChatTemplate, override: bool = False):
+        """
+        Register a chat template for a model type.
+
+        Args:
+            name(str): The name of the chat template.
+            template(ChatTemplate): The chat template.
+            override(bool): Whether to override the existing template, default to False
+        """
+        assert (
+            override or name not in self.templates
+        ), f"Chat template for the model type {name} has already been registered"
+        self.templates[name] = template
+
+    def get(self, name: str) -> ChatTemplate:
+        """
+        Get the chat template for a model type.
+
+        Args:
+            name(str): The name of the chat template.
+
+        Returns:
+            ChatTemplate: The chat template.
+        """
+        return self.templates[name]
+
+    def get_all_template_names(self) -> List[str]:
+        """
+        Get all the template names.
+
+        Returns:
+            List[str]: The list of template names.
+        """
+        return list(self.templates.keys())
+
+
+# global registry
+TEMPLATE_REGISTRY = TemplateRegistry()
+
+# Register the common template here
+TEMPLATE_REGISTRY.register(
+    name="llama3",
+    template=ChatTemplate(
+        assistant_header="<|start_header_id|>assistant<|end_header_id|>\n\n",
+        user_header="<|start_header_id|>user<|end_header_id|>",
+        system_prompt="You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe.  Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. Please ensure that your responses are socially unbiased and positive in nature.\n\nIf a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information.",
+        end_of_turn_token="<|eot_id|>",
+    ),
+)
+
+TEMPLATE_REGISTRY.register(
+    name="llama4",
+    template=ChatTemplate(
+        assistant_header="<|header_start|>assistant<|header_end|>\n\n",
+        user_header="<|header_start|>user<|header_end|>",
+        system_prompt="You are a helpful assistant.",
+        end_of_turn_token="<|eot|>",
+    ),
+)
+
+TEMPLATE_REGISTRY.register(
+    name="qwen",
+    template=ChatTemplate(
+        assistant_header="<|im_start|>assistant\n",
+        user_header="<|im_start|>user\n",
+        system_prompt="You are a helpful assistant.",
+        end_of_turn_token="<|im_end|>\n",
+    ),
+)
+
+TEMPLATE_REGISTRY.register(
+    name="lfm",
+    template=ChatTemplate(
+        assistant_header="<|im_start|>assistant\n",
+        user_header="<|im_start|>user\n",
+        system_prompt="",
+        end_of_turn_token="<|im_end|>\n",
+    ),
+)
+
+TEMPLATE_REGISTRY.register(
+    name="qwen2-vl",
+    template=ChatTemplate(
+        assistant_header="<|im_start|>assistant\n",
+        user_header="<|im_start|>user\n",
+        system_prompt="You are a helpful assistant.",
+        end_of_turn_token="<|im_end|>\n",
+    ),
+)
+
+TEMPLATE_REGISTRY.register(
+    name="phi3",
+    template=ChatTemplate(
+        assistant_header="<|assistant|>\n",
+        user_header="<|user|>\n",
+        system_prompt="You are a helpful assistant.",
+        end_of_turn_token="<|end|>\n",
+    ),
+)
+
+TEMPLATE_REGISTRY.register(
+    name="phi4",
+    template=ChatTemplate(
+        assistant_header="<|im_start|>assistant<|im_sep|>",
+        user_header="<|im_start|>user<|im_sep|>",
+        system_prompt="You are a helpful assistant.",
+        end_of_turn_token="<|im_end|>",
+    ),
+)
+
+TEMPLATE_REGISTRY.register(
+    name="phi4-mini",
+    template=ChatTemplate(
+        assistant_header="<|assistant|>",
+        user_header="<|user|>",
+        system_prompt="You are a helpful assistant.",
+        end_of_turn_token="<|end|>",
+    ),
+)
+
+TEMPLATE_REGISTRY.register(
+    name="gpt-oss-naive",
+    template=ChatTemplate(
+        assistant_header="<|start|>assistant<|channel|>analysis<|message|>",
+        user_header="<|start|>user<|message|>",
+        system_prompt=None,
+        end_of_turn_token="<|end|>",
+    ),
+)
+
+
+TEMPLATE_REGISTRY.register(
+    name="gpt-oss",
+    template=ChatTemplate(
+        assistant_header=None,  # the headers are not applicable to openai-harmony's channel tags
+        user_header=None,
+        system_prompt=None,
+        end_of_turn_token=None,
+        parser_type="openai-harmony",
+    ),
+)
+
+TEMPLATE_REGISTRY.register(
+    name="deepseek-r1-distill",
+    template=ChatTemplate(
+        assistant_header="<｜Assistant｜>",
+        user_header="<｜User｜>",
+        end_of_turn_token=None,
+        system_prompt=None,
+    ),
+)
+
+TEMPLATE_REGISTRY.register(
+    name="qwen3-thinking",
+    template=ChatTemplate(
+        assistant_header="<|im_start|>assistant\n",
+        user_header="<|im_start|>user\n",
+        system_prompt="You are a helpful assistant.",
+        end_of_turn_token="<|im_end|>\n",
+        parser_type="thinking",
+        enable_thinking=True,
+    ),
+)
+
+
+TEMPLATE_REGISTRY.register(
+    name="qwen3-instruct",
+    template=ChatTemplate(
+        assistant_header="<|im_start|>assistant\n",
+        user_header="<|im_start|>user\n",
+        system_prompt="You are a helpful assistant.",
+        end_of_turn_token="<|im_end|>\n",
+        ignore_token=["<think>\n\n</think>\n\n"],
+    ),
+)
+
+TEMPLATE_REGISTRY.register(
+    name="qwen3-next-thinking",
+    template=ChatTemplate(
+        assistant_header="<|im_start|>assistant\n<think>\n",
+        user_header="<|im_start|>user\n",
+        system_prompt="You are a helpful assistant.",
+        end_of_turn_token="<|im_end|>\n",
+        parser_type="thinking",
+        enable_thinking=True,
+    ),
+)
+
+TEMPLATE_REGISTRY.register(
+    name="kimi-k2-thinking",
+    template=ChatTemplate(
+        assistant_header="<|im_assistant|>assistant<|im_middle|>",
+        user_header="<|im_start|>user\n",
+        system_prompt="You are a helpful assistant.",
+        end_of_turn_token="<|im_end|>",
+        parser_type="thinking",
+        enable_thinking=True,
+    ),
+)
+
+TEMPLATE_REGISTRY.register(
+    name="kimi-k2-instruct",
+    template=ChatTemplate(
+        assistant_header="<|im_assistant|>assistant<|im_middle|>",
+        user_header="<|im_start|>user\n",
+        system_prompt="You are a helpful assistant.",
+        end_of_turn_token="<|im_end|>",
+    ),
+)
+
+TEMPLATE_REGISTRY.register(
+    name="deepseek-v3",
+    template=ChatTemplate(
+        assistant_header="<｜Assistant｜>",
+        user_header="<｜User｜>",
+        system_prompt="You are a helpful assistant.",
+        end_of_turn_token="<｜end▁of▁sentence｜>",
+    ),
+)
+
+TEMPLATE_REGISTRY.register(
+    name="ling-flash-2.0",
+    template=ChatTemplate(
+        assistant_header="<role>ASSISTANT</role>",
+        user_header="<role>HUMAN</role>",
+        system_prompt="You are a helpful assistant.",
+        end_of_turn_token="<|role_end|>",
+    ),
+)
+
+TEMPLATE_REGISTRY.register(
+    name="deepseek-v32",
+    template=ChatTemplate(
+        assistant_header="<｜Assistant｜>",
+        user_header="<｜User｜>",
+        system_prompt="",
+        end_of_turn_token="<｜end▁of▁sentence｜>",
+        parser_type="thinking",
+        enable_thinking=True,
+    ),
+)
+
+TEMPLATE_REGISTRY.register(
+    name="gemma",
+    template=ChatTemplate(
+        assistant_header="<start_of_turn>model\n",
+        user_header="<start_of_turn>user\n",
+        system_prompt="You are a helpful assistant.",
+        end_of_turn_token="<end_of_turn>\n",
+    ),
+)
+
+TEMPLATE_REGISTRY.register(
+    name="longcat",
+    template=ChatTemplate(
+        assistant_header=" ASSISTANT:",
+        user_header=" USER:",
+        system_prompt="You are a helpful assistant.",
+        end_of_turn_token="</longcat_s>",
+        assistant_pattern_type="longcat",
+    ),
+)
+
+TEMPLATE_REGISTRY.register(
+    name="longcat_xml",
+    template=ChatTemplate(
+        assistant_header="<longcat_assistant>",
+        user_header="<longcat_user>",
+        system_prompt="You are a helpful assistant.",
+        end_of_turn_token="</longcat_s>",
+    ),
+)
+
+
+TEMPLATE_REGISTRY.register(
+    name="qwen3.5",
+    template=ChatTemplate(
+        assistant_header="<|im_start|>assistant\n<think>\n",
+        user_header="<|im_start|>user\n",
+        system_prompt="",
+        end_of_turn_token="<|im_end|>\n",
+        parser_type="thinking",
+        enable_thinking=True,
+    ),
+)
+
+
+# --- MTP hosts: the training render must equal the evaluation prompt ---------
+# Evaluation: apply_chat_template(msgs, add_generation_prompt=True, enable_thinking=False).
+# Qwen3.5 (thinking by default) then ends the prompt with the empty think block
+# "<|im_start|>assistant\n<think>\n\n</think>\n\n"; the official template emits the
+# same block for the last assistant turn when the content has no reasoning, so the
+# plain render matches — the block is excluded from the loss (it sits in the prompt
+# at deployment, the drafter never produces it). No system prompt on either side.
+TEMPLATE_REGISTRY.register(
+    name="qwen3.5-instruct",
+    template=ChatTemplate(
+        assistant_header="<|im_start|>assistant\n",
+        user_header="<|im_start|>user\n",
+        system_prompt="",
+        end_of_turn_token="<|im_end|>\n",
+        ignore_token=["<think>\n\n</think>\n\n"],
+    ),
+)
+
+# Gemma 4: enable_thinking=False puts an EMPTY thought channel into the prompt
+# ("<|turn>model\n<|channel>thought\n<channel|>"), which the official template does
+# not render for a completed turn -> the tokenizer template is patched with
+# `patch_gemma4_template` before rendering (train_eagle3 --chat-template gemma4)
+# and the channel tokens are excluded from the loss like the Qwen think block.
+TEMPLATE_REGISTRY.register(
+    name="gemma4",
+    template=ChatTemplate(
+        assistant_header="<|turn>model\n",
+        user_header="<|turn>user\n",
+        system_prompt="",
+        end_of_turn_token="<turn|>\n",
+        ignore_token=["<|channel>thought\n<channel|>"],
+    ),
+)
+
+# The official Gemma 4 template's assistant thought-channel branch (must exist as-is;
+# the patch replaces only this branch so upstream template changes surface as errors).
+GEMMA4_THOUGHT_BRANCH = (
+    "    {%- if thinking_text and thinking_gate -%}\n"
+    "        {{- '<|channel>thought\\n' + thinking_text + '\\n<channel|>' -}}\n"
+    "    {%- endif -%}"
+)
+GEMMA4_THOUGHT_BRANCH_PATCHED = (
+    "    {%- if thinking_text and thinking_gate -%}\n"
+    "        {{- '<|channel>thought\\n' + thinking_text + '\\n<channel|>' -}}\n"
+    "    {%- elif thinking_gate and not enable_thinking -%}\n"
+    "        {{- '<|channel>thought\\n<channel|>' -}}\n"
+    "    {%- endif -%}"
+)
+
+
+def patch_gemma4_template(template: str) -> str:
+    """Official Gemma 4 chat template -> training template that renders the empty
+    thought channel of a no-thinking assistant turn (== the evaluation prompt tail)."""
+    if GEMMA4_THOUGHT_BRANCH_PATCHED in template:
+        return template
+    if template.count(GEMMA4_THOUGHT_BRANCH) != 1:
+        raise ValueError(
+            "Gemma 4 chat template: thought-channel branch not found "
+            f"({template.count(GEMMA4_THOUGHT_BRANCH)} matches) — upstream template changed?"
+        )
+    return template.replace(GEMMA4_THOUGHT_BRANCH, GEMMA4_THOUGHT_BRANCH_PATCHED)
